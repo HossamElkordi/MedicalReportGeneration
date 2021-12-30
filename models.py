@@ -90,9 +90,9 @@ class CNN(nn.Module):
             raise ValueError('Unsupported model_type!')
         
     def forward(self, input):
-        wxh_features = self.feature(input) # (B,2048,W,H)
-        avg_features = self.average(wxh_features) # (B,2048,1,1)
-        avg_features = avg_features.view(avg_features.shape[0], -1) # (B,2048)
+        wxh_features = self.feature(input) # (B x 2048 x W x H)
+        avg_features = self.average(wxh_features) # (B x 2048 x 1 x 1)
+        avg_features = avg_features.view(avg_features.shape[0], -1) # (B x 2048)
         return avg_features, wxh_features
 
 class MVCNN(nn.Module):

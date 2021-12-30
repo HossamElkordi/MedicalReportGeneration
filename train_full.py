@@ -283,16 +283,16 @@ if __name__ == "__main__":
         model = GumbelTransformer(transformer.module.cpu(), diff_chexpert.module.cpu())
         criterion = CELossTotal(ignore_index=3)
         
-    elif MODEL_NAME == 'ST':
-        KW_SRC = ['image', 'caption', 'caption_length']
-        
-        LR = 5e-5
-        NUM_EMBEDS = 256
-        HIDDEN_SIZE = 128
-        DROPOUT = 0.1
-        
-        model = ST(cnn, num_tokens=VOCAB_SIZE, fc_features=FC_FEATURES, embed_dim=NUM_EMBEDS, hidden_size=HIDDEN_SIZE, dropout=DROPOUT, freeze_encoder=True)
-        criterion = CELossShift(ignore_index=3)
+    # elif MODEL_NAME == 'ST':
+        # KW_SRC = ['image', 'caption', 'caption_length']
+        #
+        # LR = 5e-5
+        # NUM_EMBEDS = 256
+        # HIDDEN_SIZE = 128
+        # DROPOUT = 0.1
+        #
+        # model = ST(cnn, num_tokens=VOCAB_SIZE, fc_features=FC_FEATURES, embed_dim=NUM_EMBEDS, hidden_size=HIDDEN_SIZE, dropout=DROPOUT, freeze_encoder=True)
+        # criterion = CELossShift(ignore_index=3)
         
     else:
         raise ValueError('Invalid MODEL_NAME')

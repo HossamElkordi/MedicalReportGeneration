@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import modules.utils as utils
+import tools as utils
 
 
 class CaptionModel(nn.Module):

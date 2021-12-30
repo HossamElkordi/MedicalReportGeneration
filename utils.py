@@ -194,3 +194,4 @@ def load(path, model, optimizer=None, scheduler=None):
 		except: # Input scheduler doesn't fit the checkpoint one --> should be ignored
 			print('Cannot load the scheduler')
 	return epoch, stats
+
