@@ -34,11 +34,10 @@ def pack_wrapper(module, att_feats, att_masks):
 
 
 class AttModel(CaptionModel):
-    def __init__(self, args, tokenizer):
+    def __init__(self, args):
         super(AttModel, self).__init__()
         self.args = args
-        self.tokenizer = tokenizer
-        self.vocab_size = len(tokenizer.idx2token)
+        self.vocab_size = 1000
         self.input_encoding_size = args.d_model
         self.rnn_size = args.d_ff
         self.num_layers = args.num_layers

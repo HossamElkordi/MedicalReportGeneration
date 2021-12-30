@@ -318,8 +318,8 @@ class BaseCMN(AttModel):
                 nn.init.xavier_uniform_(p)
         return model
 
-    def __init__(self, args, tokenizer):
-        super(BaseCMN, self).__init__(args, tokenizer)
+    def __init__(self, args):
+        super(BaseCMN, self).__init__(args)
         self.args = args
         self.num_layers = args.num_layers
         self.d_model = args.d_model

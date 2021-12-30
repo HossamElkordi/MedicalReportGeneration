@@ -371,7 +371,7 @@ class NLMCXR(data.Dataset): # Open-I Dataset
         
         self.source_sections = ['INDICATION', 'COMPARISON']
         self.target_sections = ['FINDINGS']
-        self.vocab = spm.SentencePieceProcessor(model_file=directory + vocab_file)
+        self.vocab = spm.SentencePieceProcessor(model_file=os.path.join(directory, vocab_file))
         self.vocab_file = vocab_file # Save it for subsets
 
         self.sources = sources # Choose which section as input
@@ -481,7 +481,7 @@ class NLMCXR(data.Dataset): # Open-I Dataset
         return sources if len(sources) > 1 else sources[0], targets if len(targets) > 1 else targets[0]
 
     def __get_nounphrase(self, top_k=100, file_name='count_nounphrase.json'):
-        count_np = json.load(open(self.dir + file_name, 'r'))
+        count_np = json.load((open(os.path.join(self.dir, file_name), 'r')))
         sorted_count_np = sorted([(k,v) for k,v in count_np.items()], key=lambda x: x[1], reverse=True)
         top_nounphrases = [k for k,v in sorted_count_np][:top_k]
         return top_nounphrases
@@ -494,17 +494,17 @@ class NLMCXR(data.Dataset): # Open-I Dataset
         self.top_np = self.__get_nounphrase()
         
     def __input_label(self):
-        with open(self.dir + 'file2label.json') as f:
+        with open(os.path.join(self.dir, 'file2label.json')) as f:
             labels = json.load(f)
         self.file_labels = labels
         
     def __input_caption(self):
-        with open(self.dir + 'captions.json') as f:
+        with open(os.path.join(self.dir, 'captions.json')) as f:
             captions = json.load(f)
         self.captions = captions
         
     def __input_report(self):
-        with open(self.dir + 'reports_ori.json') as f:
+        with open(os.path.join(self.dir, 'reports_ori.json')) as f:
             reports = json.load(f)
         self.file_list = [k for k in reports.keys()]
         self.file_report = reports

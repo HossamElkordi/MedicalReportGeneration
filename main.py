@@ -4,13 +4,14 @@ import argparse
 import torch
 import torch.nn as nn
 from torchvision import models
+import torch.optim as optim
+import torch.utils.data as data
 
 from base_cmn import BaseCMN
 from datasets import NLMCXR, MIMIC
 from losses import CELossTotalEval
 from models import CNN, MVCNN, TNN, Classifier, ClsGenInt, ClsGen
-from tokenizers import Tokenizer
-from utils import load
+from utils import save, load, train, test, data_to_device, data_concatenate
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ["OMP_NUM_THREADS"] = "1"
@@ -196,7 +197,7 @@ if __name__ == '__main__':
         FC_FEATURES = 2048
 
     elif BACKBONE_NAME == 'DenseNet121':
-        backbone = torch.hub.load('pytorch/vision:v0.5.0', 'densenet121', pretrained=True)
+        backbone = torch.hub.load('pytorch/vision:v0.10.0', 'densenet121', pretrained=True)
         FC_FEATURES = 1024
 
     else:
@@ -224,8 +225,8 @@ if __name__ == '__main__':
     cls_model = Classifier(num_topics=NUM_LABELS, num_states=NUM_CLASSES, cnn=cnn, tnn=tnn, fc_features=FC_FEATURES,
                            embed_dim=NUM_EMBEDS, num_heads=NUM_HEADS, dropout=DROPOUT)
 
-    tokenizer = Tokenizer(args)
-    gen_model = BaseCMN(args, tokenizer)
+    # tokenizer = Tokenizer(args)
+    gen_model = BaseCMN(args)
 
     clsgen_model = ClsGen(cls_model, gen_model, NUM_LABELS, NUM_EMBEDS)
     clsgen_model = nn.DataParallel(clsgen_model).cuda()
@@ -258,3 +259,48 @@ if __name__ == '__main__':
 
     model = ClsGenInt(clsgen_model.module.cpu(), int_model.module.cpu(), freeze_evaluator=True)
     criterion = CELossTotalEval(ignore_index=3)
+
+    # --- Main program ---
+    train_loader = data.DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True, num_workers=8, drop_last=True)
+    val_loader = data.DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False, num_workers=8)
+    test_loader = data.DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False, num_workers=8)
+
+    model = nn.DataParallel(model).cuda()
+    optimizer = optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=LR, weight_decay=WD)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=MILESTONES)
+
+    print('Total Parameters:', sum(p.numel() for p in model.parameters()))
+
+    last_epoch = -1
+    best_metric = 1e9
+
+    checkpoint_path_from = 'checkpoints/{}_{}_{}_{}.pt'.format(DATASET_NAME, MODEL_NAME, BACKBONE_NAME, COMMENT)
+    checkpoint_path_to = 'checkpoints/{}_{}_{}_{}.pt'.format(DATASET_NAME, MODEL_NAME, BACKBONE_NAME, COMMENT)
+
+    if RELOAD:
+        last_epoch, (best_metric, test_metric) = load(checkpoint_path_from, model, optimizer, scheduler)  # Reload
+        # last_epoch, (best_metric, test_metric) = load(checkpoint_path_from, model) # Fine-tune
+        print('Reload From: {} | Last Epoch: {} | Validation Metric: {} | Test Metric: {}'.format(checkpoint_path_from,
+                                                                                                  last_epoch,
+                                                                                                  best_metric,
+                                                                                                  test_metric))
+
+    if PHASE == 'TRAIN':
+        scaler = torch.cuda.amp.GradScaler()
+
+        for epoch in range(last_epoch + 1, EPOCHS):
+            print('Epoch:', epoch)
+            train_loss = train(train_loader, model, optimizer, criterion, device='cuda', kw_src=KW_SRC, kw_tgt=KW_TGT,
+                               kw_out=KW_OUT, scaler=scaler)
+            val_loss = test(val_loader, model, criterion, device='cuda', kw_src=KW_SRC, kw_tgt=KW_TGT, kw_out=KW_OUT,
+                            return_results=False)
+            test_loss = test(test_loader, model, criterion, device='cuda', kw_src=KW_SRC, kw_tgt=KW_TGT, kw_out=KW_OUT,
+                             return_results=False)
+
+            scheduler.step()
+
+            if best_metric > val_loss:
+                best_metric = val_loss
+                save(checkpoint_path_to, model, optimizer, scheduler, epoch, (val_loss, test_loss))
+                print('New Best Metric: {}'.format(best_metric))
+                print('Saved To:', checkpoint_path_to)
