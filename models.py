@@ -328,7 +328,7 @@ class ClsGen(nn.Module):
         if caption != None:
             src_emb = img_emb + lbl_emb
             pad_mask = (caption == pad_id)
-            cap_gen, cap_emb = self.generator(source_embed=src_emb, token_index=caption, target_pad_mask=pad_mask) # (B,L,S), (B,L,E)
+            cap_gen, cap_emb = self.generator(src_emb, caption, pad_mask) # (B,L,S), (B,L,E)
             if get_emb:
                 return cap_gen, img_mlc, cap_emb
             else:
